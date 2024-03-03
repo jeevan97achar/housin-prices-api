@@ -66,7 +66,7 @@ jobs:
       - run:
           name: Fetch the data
           command: |
-            tox -e fetch_data
+            tox run -e fetch_data
       - run:
           name: Test the model
           command: |
@@ -74,7 +74,7 @@ jobs:
       - run:
           name: Publish model to Gemfury
           command: |
-            tox -e publish_model
+            tox run -e publish_model
 
 
   section_08_deploy_app_container_via_railway:
