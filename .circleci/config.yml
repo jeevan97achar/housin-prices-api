@@ -271,21 +271,21 @@ workflows:
       - section_07_deploy_app_to_railway:
           requires:
             - section_07_test_app
-          # filters:
-          #   branches:
-          #     only:
-          #       - master
-          #       - demo
+          filters:
+            branches:
+              only:
+                - master
+                - demo
       # upload after git tags are created
       - section_07_test_and_upload_regression_model:
-          # <<: *tags_only
+          <<: *tags_only
 
       - section_08_deploy_app_container_via_railway:
-        #  filters:
-        #    branches:
-        #      only:
-        #        - master
-        #        - demo
+         filters:
+           branches:
+             only:
+               - master
+               - demo
 
 #  test-all:
 #    jobs:
