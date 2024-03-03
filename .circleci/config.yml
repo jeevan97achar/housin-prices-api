@@ -2,13 +2,11 @@ version: '2.1'
 orbs:
   node: circleci/node@5.1.0
 
-# Define defaults to avoid repetition
 defaults: &defaults
   docker:
     - image: cimg/python:3.11.1
   working_directory: ~/project
 
-# Define reusable steps
 prepare_venv: &prepare_venv
   run:
     name: Create venv
@@ -34,19 +32,21 @@ fetch_data: &fetch_data
 jobs:
   section_07_test_app:
     <<: *defaults
-    working_directory: ~/project/housing-prices-api
+    working_directory: ~/housing-prices-api/housing-prices-api
     steps:
-      - checkout
+      - checkout:
+          path: ~/project
       - *prepare_tox
       - run:
-          name: Running app tests
+          name: Runnning app tests
           command: |
             tox
 
   section_07_deploy_app_to_railway:
     <<: *defaults
     steps:
-      - checkout
+      - checkout:
+          path: ~/project/
       - node/install:
           node-version: '16.13'
       - run: node --version
@@ -54,18 +54,19 @@ jobs:
       - run:
           name: Deploy to Railway App (You must set RAILWAY_TOKEN env var)
           command: |
-            cd housing-prices-api && railway up --detach
+            cd housing-prices-api/housing-prices-api && railway up --detach
 
   section_07_test_and_upload_regression_model:
     <<: *defaults
-    working_directory: ~/project/model-package
+    working_directory: ~/project/housing-prices-api/model-package
     steps:
-      - checkout
+      - checkout:
+          path: ~/project
       - *prepare_tox
       - run:
           name: Fetch the data
           command: |
-            tox run -e fetch_data
+            tox -e fetch_data
       - run:
           name: Test the model
           command: |
@@ -73,22 +74,25 @@ jobs:
       - run:
           name: Publish model to Gemfury
           command: |
-            tox run -e publish_model
+            tox -e publish_model
+
 
   section_08_deploy_app_container_via_railway:
     <<: *defaults
     steps:
       - setup_remote_docker:
+          # Supported versions: https://circleci.com/docs/2.0/building-docker-images/#docker-version
           version: 20.10.18
-      - checkout
+      - checkout:
+          path: ~/project/
       - node/install:
           node-version: '16.13'
       - run: node --version
       - run: npm i -g @railway/cli
       - run:
-          name: Build and run Dockerfile
+          name: Build and run Dockerfile (see https://docs.railway.app/deploy/dockerfiles)
           command: |
-            cd sect
+            cd section-08-deploying-with-containers && railway up --detach
 
   test_regression_model_py37:
     docker:
@@ -251,6 +255,14 @@ jobs:
             chmod +x ./scripts/publish_model.sh
             ./scripts/publish_model.sh ./packages/neural_network_model/
 
+
+tags_only: &tags_only
+  filters:
+    branches:
+      ignore: /.*/
+    tags:
+      only: /^.*/
+
 workflows:
   version: 2
   deploy_pipeline:
@@ -264,17 +276,16 @@ workflows:
               only:
                 - master
                 - demo
+      # upload after git tags are created
       - section_07_test_and_upload_regression_model:
-          requires:
-            - section_07_test_app
+          <<: *tags_only
+
       - section_08_deploy_app_container_via_railway:
-          requires:
-            - section_07_test_app
-          filters:
-            branches:
-              only:
-                - master
-                - demo
+         filters:
+           branches:
+             only:
+               - master
+               - demo
 
 #  test-all:
 #    jobs:
